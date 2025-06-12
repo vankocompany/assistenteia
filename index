@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assistente de Áudio IA</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f4f4;
+      color: #333;
+      text-align: center;
+      padding: 40px;
+    }
+    h2 {
+      color: #2c3e50;
+    }
+    button {
+      font-size: 16px;
+      padding: 10px 20px;
+      margin: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    #startBtn {
+      background-color: #2ecc71;
+      color: white;
+    }
+    #startBtn:hover {
+      background-color: #27ae60;
+    }
+    #stopBtn {
+      background-color: #e74c3c;
+      color: white;
+    }
+    #stopBtn:hover {
+      background-color: #c0392b;
+    }
+    #clearBtn {
+      background-color: #95a5a6;
+      color: white;
+    }
+    #clearBtn:hover {
+      background-color: #7f8c8d;
+    }
+    #log {
+      margin-top: 30px;
+      text-align: left;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+  <h2>🩺 Assistente de Áudio IA (Consultório)</h2>
+  <button id="startBtn">▶️ Iniciar Gravação</button>
+  <button id="stopBtn" disabled>⏹️ Parar e Enviar</button>
+  <button id="clearBtn">🧹 Limpar</button>
+  <div id="log"></div>
+
+  <script>
+    let mediaRecorder;
+    let audioChunks = [];
+
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const logDiv = document.getElementById('log');
+
+    function log(msg) {
+      const line = document.createElement("div");
+      line.innerText = msg;
+      logDiv.appendChild(line);
+    }
+
+    startBtn.onclick = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = event => {
+        audioChunks.push(event.data);
+      };
+
+      mediaRecorder.start();
+      log("✅ Gravação iniciada...");
+
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+    };
+
+    stopBtn.onclick = async () => {
+      mediaRecorder.stop();
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const reader = new FileReader();
+
+        reader.onloadend = () => {
+          const base64Audio = reader.result.split(',')[1];
+
+          log('🎙️ Enviando áudio para o n8n...');
+          fetch("https://dinastia-n8n-editor.sq9kyp.easypanel.host/webhook-test/1da16818-8744-4388-91ff-f7c0ed8828b2", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              audioBase64: base64Audio
+            })
+          }).then(resp => resp.json())
+            .then(data => {
+              log("🤖 Resposta da IA:\n\n" + data.resposta);
+            }).catch(err => {
+              log("❌ Erro ao enviar para n8n: " + err.message);
+            });
+        };
+
+        reader.readAsDataURL(audioBlob);
+      };
+
+      log("🛑 Gravação encerrada.");
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    };
+
+    clearBtn.onclick = () => {
+      logDiv.innerHTML = "";
+      audioChunks = [];
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      log("🧹 Tela limpa para nova gravação.");
+    };
+  </script>
+</body>
+</html>
