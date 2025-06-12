@@ -110,7 +110,7 @@
           const base64Audio = reader.result.split(',')[1];
 
           log('🎙️ Enviando áudio para o n8n...');
-          fetch("https://dinastia-n8n-editor.sq9kyp.easypanel.host/webhook-test/1da16818-8744-4388-91ff-f7c0ed8828b2", {
+          fetch("https://dinastia-n8n-editor.sq9kyp.easypanel.host/webhook/1da16818-8744-4388-91ff-f7c0ed8828b2", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
